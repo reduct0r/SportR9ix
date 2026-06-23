@@ -106,6 +106,7 @@ ESP32 подключается к **S.Port+** заднего разъёма **AC
 <p align="center">
     <img width="475" alt="image" src="https://github.com/user-attachments/assets/70b12195-2ac6-43fa-a483-5769df86e3f5" />
 </p>
+
 На борту нужен **ACCST-приёмник с S.Port** (или «inverted S.Port»), прошитый под ваш модуль. ArduPilot Passthrough проверен на **R9 Slim+**; по спецификации FrSky SmartPort и ArduPilot passthrough также применимы к:
 
 **900 MHz (R9, ACCST):**
