@@ -51,13 +51,13 @@ SportR9ix рассчитан на цепочку **FrSky ACCST** (D8 / D16 / LR1
 | ACCST + S.Port, ArduPilot Passthrough (`SERIALx_PROTOCOL = 10`) | **FrSky ACCESS** как основной протокол (Archer, нативный ACCESS без ACCST) |
 | Наземный модуль или пульт с разъёмом **S.Port** | Только **F.Port** без классического S.Port на земле |
 | Приёмники ACCST с телеметрией SmartPort на борту | ExpressLRS, TBS Crossfire, Dragonlink MAVLink-only и др. |
-| R9M-2019 / R9M Lite **с прошивкой ACCST** и ACCST-приёмниками | ISRM/ACCESS-цепочка без ACCST и без passthrough с FC |
+| R9M-2019 / R9M Lite / другие **с прошивкой ACCST** и ACCST-приёмниками | ISRM/ACCESS-цепочка без ACCST и без passthrough с FC |
 
 Прошивки ACCST v1 и v2.x на модуле и приёмниках должны **совпадать** (см. [обновление FrSky ACCST D16 2.x](https://www.frsky-rc.com/important-firmware-update-accst-d16/)). SportR9ix не привязан к версии ACCST — важна совместимость RF-звена и наличие passthrough на шине.
 
 ### Автопилот (ArduPilot)
 
-Требуется любой контроллер с прошивкой **ArduPilot** (не привязка к Pixhawk):
+Требуется любой контроллер с прошивкой **ArduPilot**:
 
 | Категория | Примеры |
 |-----------|---------|
@@ -76,7 +76,7 @@ SERIALx_BAUD     = 57    # 57600
 
 ### Наземные передатчики (куда вешать ESP32)
 
-ESP32 подключается к **S.Port+** заднего разъёма **ACCST-модуля** (или S.Port пульта). Проверено в проекте SportR9ix — **R9M (ACCST)**. По документации FrSky и схеме ACCST SmartPort также подходят:
+ESP32 подключается к **S.Port+** заднего разъёма **ACCST-модуля** (или S.Port пульта / внутри пульта). Проверено в проекте SportR9ix — **R9M (ACCST)**. По документации FrSky и схеме ACCST SmartPort также подходят:
 
 | Модуль / пульт | Диапазон | ACCST | Задний S.Port |
 |----------------|----------|-------|---------------|
@@ -86,7 +86,6 @@ ESP32 подключается к **S.Port+** заднего разъёма **AC
 | **XJT** (внешний модуль) | 2.4 GHz | да | да |
 | **XJT** (встроенный: X9D, X9D+, QX7, Horus X10S и др.) | 2.4 GHz | да | через модульный отсек / S.Port радио |
 | **DJT**, **DFT** (legacy) | 2.4 GHz | да (D8/D16) | зависит от модуля — нужен S.Port |
-| Пульт + **ER9X** + внешний XJT/R9M | 2.4 / 900 MHz | да | да |
 
 **Не подходят** как основная связка: модули **только ACCESS** (типичный R9M-2019 на ACCESS + Archer), внутренний **ISRM** без ACCST-режима и без S.Port passthrough с ArduPilot.
 
@@ -194,12 +193,12 @@ ArduPilot (любой совместимый FC, SERIALx_PROTOCOL=10)
 ### Наземный модуль S.Port → ESP32
 
 Подключение к **заднему SmartPort** ACCST-передатчика (R9M, XJT и т.д.):
+<img width="1279" height="756" alt="wiring example" src="https://github.com/user-attachments/assets/d042a348-aadc-4d5f-b39e-ab6489997308" />
 
 | Модуль (S.Port) | ESP32 DevKit |
 |---------------------|--------------|
 | **GND** | **GND** |
 | **S.Port+** | **GPIO16** (RX2, `SPORT_PIN`) |
-| S.Port− | не подключать |
 | +5V | не подключать (ESP питается от USB) |
 
 SmartPort: **57600 baud**, однопроводная линия, **инвертированный UART**.
@@ -208,7 +207,7 @@ SmartPort: **57600 baud**, однопроводная линия, **инверт
 
 ## Настройка ArduPilot
 
-На серийном порту к FrSky-приёмнику:
+На UART порту к FrSky-приёмнику:
 
 ```text
 SERIALx_PROTOCOL = 10    # FrSky Passthrough
@@ -216,8 +215,6 @@ SERIALx_BAUD = 57        # 57600
 ```
 
 Убедитесь, что downlink ID соответствует опросу (по умолчанию в прошивке: физический ID **27** → wire **0x1B**).
-
-Телеметрия на пульте ER9X/OpenTX должна показывать passthrough-данные с борта при включённом RF.
 
 ---
 
@@ -303,7 +300,7 @@ pio run -t upload
 | `SPORT_POLL_RX_WINDOW_MS` | `8` | Окно приёма после poll |
 | `SPORT_DEFAULT_SENSOR_ID` | `0x1B` | Sensor ID при опросе без ротации (ID 27) |
 | `SPORT_SKIP_CRC` | `0` | `1` = принимать кадры без CRC (отладка) |
-| `SPORT_AUTO_POLL_FALLBACK` | `0` | Авто-переход в poll при тишине (осторожно с пультом) |
+| `SPORT_AUTO_POLL_FALLBACK` | `0` | Авто-переход в poll при тишине (конфликт с пультом) |
 | `SPORT_PERIODIC_SCAN` | `0` | Периодическое сканирование ID (конфликт с пультом) |
 | `SPORT_SCAN_*` | см. файл | Параметры сканирования |
 | `DEBUG_USB` | `0` | `1` = отладочный текст в USB (ломает MP на том же порту) |
@@ -392,7 +389,7 @@ platformio.ini            — сборка ESP32
 
 ---
 
-## Доработка под себя
+## Доработка
 
 1. Скопируйте репозиторий, измените [`include/config.h`](include/config.h) под свою проводку и режим пульта.
 2. Другой GPIO: измените `SPORT_PIN` (избегайте GPIO12).
@@ -435,11 +432,10 @@ python tools/verify_mp_telemetry.py COM8 45
 | Симптом | Причина | Действие |
 |---------|---------|----------|
 | В MP только HEARTBEAT | Нет passthrough на шине | Включите борт + RF; проверьте `SERIALx_PROTOCOL=10` |
-| `F101`/`F104`, нет `0x500x` | Только телеметрия наземного модуля | Нет линка с бортом или FC не шлёт passthrough |
-| Alt/climb = 0 на столе | Квантование passthrough | Норма; USB к FC показывает точнее |
-| Pitch дёргается по WiFi | Дубли UDP (исправлено) | Обновите прошивку; один UDP-адрес на пакет |
+| Пакеты `F101`/`F104`, но нет `0x500x` | Только телеметрия наземного модуля | Нет линка с бортом или FC не шлёт passthrough |
+| Динамические параметры = 0 на столе | Квантование passthrough | Норма; USB к FC показывает точнее |
 | MP: порт 14550 занят | Старый процесс MP | Закройте все окна MP / `taskkill` |
-| Нет WiFi `SKAT-TELEM` | ESP не прошит / нет питания | Перепрошейте, проверьте USB |
+| Нет WiFi `SKAT-TELEM` | ESP не прошит / нет питания / недостаточно питания | Перепрошейте, проверьте USB, подключите более мощный источник|
 
 ---
 
