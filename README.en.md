@@ -1,8 +1,12 @@
-# SKAT SmartPort → MAVLink Telemetry Bridge
+# SportR9ix
+
+**SmartPort → MAVLink: FrSky R9 telemetry for Mission Planner**
 
 **Russian documentation:** [README.md](README.md)
 
-Firmware for **ESP32**: a bridge between **ArduPilot FrSky Passthrough** (SmartPort on the ground FrSky module) and **MAVLink** for **Mission Planner**. Designed for in-flight monitoring over 900 MHz R9 RF without a direct USB connection to the flight controller.
+**SportR9ix** is an open-source **ESP32** firmware and Python tooling suite. It converts **ArduPilot FrSky Passthrough** from the rear **SmartPort** of a ground **R9M** module into **MAVLink 2** for **Mission Planner** (USB or WiFi UDP). Monitor attitude, GPS, battery, and more over 900 MHz RF without a direct USB link to the flight controller.
+
+Repository: [github.com/reduct0r/SportR9ix](https://github.com/reduct0r/SportR9ix)
 
 ---
 
@@ -50,7 +54,7 @@ This is a **telemetry display bridge**, not a full GCS link to the autopilot.
 
 | Component | Status |
 |-----------|--------|
-| FrSky **R9 Slim+** / **R9 Mini** (aircraft) | Verified in SKAT project |
+| FrSky **R9 Slim+** / **R9 Mini** (aircraft) | Verified in SportR9ix project |
 | FrSky **R9M** / **R9M Lite** (ground module, rear S.Port) | Verified |
 | Other SmartPort passthrough receivers | Expected compatible with `FRSKY_DNLINK_ID = 27` (0x1B) |
 
@@ -168,8 +172,8 @@ Handset telemetry should show aircraft passthrough data when RF link is up.
 ### Clone and Build
 
 ```bash
-git clone https://github.com/YOUR_USER/SKAT-SPort-MAVLink-Telemetry.git
-cd SKAT-SPort-MAVLink-Telemetry
+git clone git@github.com:reduct0r/SportR9ix.git
+cd SportR9ix
 pio run
 ```
 
@@ -385,4 +389,4 @@ Provided as-is for educational and hobby use. ArduPilot and FrSky are trademarks
 
 ---
 
-**SKAT** — SmartPort MAVLink telemetry bridge for long-range FrSky R9 systems.
+**SportR9ix** — SmartPort MAVLink telemetry bridge for long-range FrSky R9 systems.
