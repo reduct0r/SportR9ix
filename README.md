@@ -1,5 +1,9 @@
 # SportR9ix
 
+<p align="center">
+    <img width="315" alt="1" src="https://github.com/user-attachments/assets/97742e62-1c0b-44ec-8dcf-3eb0ba3c8edc" />
+</p>
+
 **SmartPort → MAVLink: телеметрия FrSky ACCST в Mission Planner**
 
 **English documentation:** [README.en.md](README.en.md)
@@ -21,10 +25,10 @@
 7. [Установка и сборка](#установка-и-сборка)
 8. [Прошивка ESP32](#прошивка-esp32)
 9. [Подключение Mission Planner](#подключение-mission-planner)
-10. [Справочник `config.h`](#справочник-configh)
+10. [Справочник config.h](#справочник-configh)
 11. [Декодирование Passthrough и MAVLink](#декодирование-passthrough-и-mavlink)
 12. [Структура прошивки](#структура-прошивки)
-13. [Доработка под себя](#доработка-под-себя)
+13. [Доработка под себя](#доработка)
 14. [Инструменты тестирования](#инструменты-тестирования)
 15. [Устранение неполадок](#устранение-неполадок)
 
@@ -76,6 +80,10 @@ SERIALx_BAUD     = 57    # 57600
 
 ### Наземные передатчики (куда вешать ESP32)
 
+<p align="center">
+    <img height="430" alt="Модуль_FrSky_R9M_2019_01" src="https://github.com/user-attachments/assets/e80fb526-7b01-45f5-b6fc-5ab07b513823" />
+</p>
+
 ESP32 подключается к **S.Port+** заднего разъёма **ACCST-модуля** (или S.Port пульта / внутри пульта). Проверено в проекте SportR9ix — **R9M (ACCST)**. По документации FrSky и схеме ACCST SmartPort также подходят:
 
 | Модуль / пульт | Диапазон | ACCST | Задний S.Port |
@@ -91,6 +99,9 @@ ESP32 подключается к **S.Port+** заднего разъёма **AC
 
 ### Приёмники (борт, ACCST + SmartPort)
 
+<p align="center">
+    <img width="475" alt="image" src="https://github.com/user-attachments/assets/70b12195-2ac6-43fa-a483-5769df86e3f5" />
+</p>
 На борту нужен **ACCST-приёмник с S.Port** (или «inverted S.Port»), прошитый под ваш модуль. ArduPilot Passthrough проверен на **R9 Slim+**; по спецификации FrSky SmartPort и ArduPilot passthrough также применимы к:
 
 **900 MHz (R9, ACCST):**
@@ -268,6 +279,7 @@ pio run -t upload
 3. **Не подключайте** одновременно USB к полётнику.
 
 ### WiFi UDP
+<img width="530" height="50" alt="image" src="https://github.com/user-attachments/assets/8b632b81-4917-4267-a436-7a5d80115f3a" />
 
 1. ESP поднимает AP: **`SKAT-TELEM`** / пароль **`skat12345`**, IP **`192.168.4.1`**.
 2. Закройте все окна Mission Planner (освободите порт **14550**).
