@@ -8,6 +8,10 @@
 
 **English documentation:** [README.en.md](README.en.md)
 
+<p align="center">
+   <img width="1531" height="812" alt="Модуль_FrSky_R9M_2019_01" src="https://github.com/user-attachments/assets/5f016927-ff3d-4ab9-84fb-123b23d55e54" />
+</p>
+
 **SportR9ix** — открытая прошивка для **ESP32** и набор Python-утилит. Проект декодирует **ArduPilot FrSky Passthrough** с наземной шины **FrSky ACCST SmartPort (S.Port)** и выдаёт поток **MAVLink 2** в **Mission Planner** (USB или WiFi UDP). Подходит для дальнобойных и классических ACCST-связок (R9 900 MHz, XJT 2.4 GHz и др.), когда телеметрия с борта уже видна на пульте, но нужен мониторинг в GCS без USB к автопилоту.
 
 Репозиторий: [github.com/reduct0r/SportR9ix](https://github.com/reduct0r/SportR9ix)
