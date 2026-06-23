@@ -1,10 +1,10 @@
 # SportR9ix
 
-**SmartPort → MAVLink: FrSky R9 telemetry for Mission Planner**
+**SmartPort → MAVLink: FrSky ACCST telemetry for Mission Planner**
 
 **Russian documentation:** [README.md](README.md)
 
-**SportR9ix** is an open-source **ESP32** firmware and Python tooling suite. It converts **ArduPilot FrSky Passthrough** from the rear **SmartPort** of a ground **R9M** module into **MAVLink 2** for **Mission Planner** (USB or WiFi UDP). Monitor attitude, GPS, battery, and more over 900 MHz RF without a direct USB link to the flight controller.
+**SportR9ix** is an open-source **ESP32** firmware and Python tooling suite. It decodes **ArduPilot FrSky Passthrough** from the ground **FrSky ACCST SmartPort (S.Port)** bus and outputs **MAVLink 2** for **Mission Planner** (USB or WiFi UDP). It fits long-range and classic ACCST links (R9 900 MHz, XJT 2.4 GHz, etc.) when aircraft telemetry already appears on the handset but you need GCS monitoring without a USB cable to the autopilot.
 
 Repository: [github.com/reduct0r/SportR9ix](https://github.com/reduct0r/SportR9ix)
 
@@ -32,7 +32,7 @@ Repository: [github.com/reduct0r/SportR9ix](https://github.com/reduct0r/SportR9i
 
 ## Purpose
 
-On the aircraft, ArduPilot sends telemetry to the FrSky receiver using **Passthrough** (`SERIALx_PROTOCOL = 10`). The handset (ER9X / OpenTX / EdgeTX) polls the **R9M** module SmartPort bus; aircraft replies travel over RF and appear on the module rear **S.Port** connector.
+On the aircraft, **ArduPilot** sends telemetry to the FrSky receiver as **Passthrough** (`SERIALx_PROTOCOL = 10`). The handset (ER9X / OpenTX / EdgeTX) polls the **SmartPort** bus of the ground **ACCST module**; replies travel over RF and appear on the module rear **S.Port** (or the radio S.Port). The ESP32 taps that ground-side bus.
 
 The ESP32 **passively listens** to that bus (or actively polls the module on the bench), **decodes** `0x5000`–`0x50FF` packets, **builds MAVLink 2**, and streams to Mission Planner over **USB** or **WiFi UDP**.
 
@@ -42,29 +42,87 @@ This is a **telemetry display bridge**, not a full GCS link to the autopilot.
 
 ## Compatible Hardware
 
-### Flight Controller
+### Protocol: FrSky ACCST + SmartPort only
 
-| Component | Requirements |
-|-----------|--------------|
-| Autopilot | **ArduPilot** (Plane/Copter/Rover) with FrSky Passthrough support |
-| Receiver port | `SERIALx_PROTOCOL = 10`, `SERIALx_BAUD = 57` (57600) |
-| Aircraft wiring | UART inverter between FC and receiver (standard FrSky setup) |
+SportR9ix targets **FrSky ACCST** (D8 / D16 / LR12 / EU-LBT, etc.) and the physical **SmartPort (S.Port)** bus on the **ground** side.
 
-### Receiver and Transmitter (RF)
+| Supported | Not supported |
+|-----------|---------------|
+| ACCST + S.Port, ArduPilot Passthrough (`SERIALx_PROTOCOL = 10`) | **FrSky ACCESS** as the primary protocol (Archer, native ACCESS without ACCST) |
+| Ground module or radio with **S.Port** connector | **F.Port-only** ground link without classic S.Port |
+| ACCST receivers with SmartPort telemetry on the aircraft | ExpressLRS, TBS Crossfire, Dragonlink MAVLink-only, etc. |
+| R9M-2019 / R9M Lite **with ACCST firmware** and ACCST receivers | ISRM/ACCESS chain without ACCST and without FC passthrough |
 
-| Component | Status |
-|-----------|--------|
-| FrSky **R9 Slim+** / **R9 Mini** (aircraft) | Verified in SportR9ix project |
-| FrSky **R9M** / **R9M Lite** (ground module, rear S.Port) | Verified |
-| Other SmartPort passthrough receivers | Expected compatible with `FRSKY_DNLINK_ID = 27` (0x1B) |
+ACCST v1 and v2.x firmware on module and receivers must **match** (see [FrSky ACCST D16 2.x update](https://www.frsky-rc.com/important-firmware-update-accst-d16/)). SportR9ix is not tied to an ACCST version — RF link compatibility and passthrough on the bus matter.
 
-### Handset (SmartPort Bus Master)
+### Autopilot (ArduPilot)
+
+Any board running **ArduPilot** (not limited to Pixhawk):
+
+| Category | Examples |
+|----------|----------|
+| Classic FMU | Pixhawk 1/4/5/6, Cube Orange/Yellow, CUAV V5/V6 |
+| Matek / Holybro / SpeedyBee | F405-WSE, F765, H743, Kakute F7/H7, SpeedyBee F405 |
+| Other supported boards | Any board from the [ArduPilot autopilot list](https://ardupilot.org/copter/docs/common-autopilots.html) |
+
+Receiver UART settings:
+
+```text
+SERIALx_PROTOCOL = 10    # FrSky SPort Passthrough
+SERIALx_BAUD     = 57    # 57600
+```
+
+**F4** boards often need an external UART inverter; **F7/H7** usually work with `SERIALx_OPTIONS = 7` (invert + half-duplex). See [ArduPilot FrSky Passthrough](https://ardupilot.org/copter/docs/common-frsky-passthrough.html).
+
+### Ground transmitters (ESP32 connection point)
+
+Connect the ESP32 to **S.Port+** on the rear of an **ACCST module** (or radio S.Port). Verified in SportR9ix: **R9M (ACCST)**. Per FrSky ACCST SmartPort documentation, these also apply:
+
+| Module / radio | Band | ACCST | Rear S.Port |
+|----------------|------|-------|-------------|
+| **R9M** (not “2019 ACCESS” label) | 900 MHz | yes | yes |
+| **R9M Lite** / **R9M Lite Pro** | 900 MHz | yes (ACCST FW) | yes |
+| **R9M-2019** | 900 MHz | only with **ACCST** firmware | yes |
+| **XJT** (external module) | 2.4 GHz | yes | yes |
+| **XJT** (internal: X9D, X9D+, QX7, Horus X10S, etc.) | 2.4 GHz | yes | via module bay / radio S.Port |
+| **DJT**, **DFT** (legacy) | 2.4 GHz | yes (D8/D16) | module-dependent — S.Port required |
+| Handset + **ER9X** + external XJT/R9M | 2.4 / 900 MHz | yes | yes |
+
+**Not suitable** as the primary chain: **ACCESS-only** modules (typical R9M-2019 on ACCESS + Archer), internal **ISRM** without ACCST mode and without ArduPilot S.Port passthrough.
+
+### Receivers (aircraft, ACCST + SmartPort)
+
+The aircraft needs an **ACCST receiver with S.Port** (or “inverted S.Port”), flashed for your module. Passthrough verified on **R9 Slim+**; per FrSky SmartPort and ArduPilot passthrough specs, these also apply:
+
+**900 MHz (R9, ACCST):**
+
+| Receiver | S.Port | Notes |
+|----------|--------|-------|
+| R9, R9 Mini, R9 MM | yes | ACCST firmware |
+| R9 Slim, **R9 Slim+**, R9 SL | yes / inv. S.Port | common for long range |
+| R9 Mini OTA, R9 Slim+ OTA | yes | after **ACCST** flash |
+
+**2.4 GHz (ACCST D16 / D8, SmartPort):**
+
+| Series | Models with S.Port |
+|--------|-------------------|
+| X | X4R-SB, X4R, X6R, X8R, XSR, RXSR (ACCST) |
+| S | S6R, S8R |
+| D | D4R-II, D8R-II Plus, D8R-XP |
+| LR | L9R (LR12 mode) |
+| V8-II | V8FR-II and others with telemetry |
+
+**XM / XM+** use a simplified single-wire SmartPort; passthrough works but wiring and sensor ID may differ (`FRSKY_DNLINK_ID`).
+
+**Archer** receivers (GR/RS/RX) in **ACCESS-only** mode are **not** part of the ACCST passthrough chain.
+
+### Handset (SmartPort bus master)
 
 | Firmware | `config.h` mode |
 |----------|-----------------|
-| **ER9X** (Turnigy 9X, etc.) | `SPORT_ACTIVE_POLL 0` — listen-only, handset polls the bus |
-| **OpenTX / EdgeTX** | `SPORT_ACTIVE_POLL 0` or `1` (bench without handset) |
-| No handset (bench) | `SPORT_ACTIVE_POLL 1` — ESP polls R9M |
+| **ER9X** (Turnigy 9X, 9XR, etc.) + XJT/R9M | `SPORT_ACTIVE_POLL 0` — listen-only |
+| **OpenTX / EdgeTX** (Taranis, Radiomaster with ACCST module) | `0` with handset / `1` on bench |
+| No handset (bench) | `SPORT_ACTIVE_POLL 1` — ESP polls the module |
 
 ### Microcontroller
 
@@ -105,21 +163,21 @@ This is a **telemetry display bridge**, not a full GCS link to the autopilot.
 - Mission upload, parameter changes, arm/disarm through this link
 - Full USB-MAVLink rate and precision (passthrough quantizes e.g. pitch 0.2°, altitude 0.1 m)
 - Camera/gimbal control, MAVLink commands to FC
-- Connecting MP directly to the **flight controller COM port** — MP must connect to **ESP**
+- Direct connection to the **autopilot COM port** — MP must connect to **ESP**, not the flight controller
 
 ---
 
 ## Architecture
 
 ```
-ArduPilot (SERIALx_PROTOCOL=10)
-    → [inverter] → FrSky receiver (aircraft)
-        → RF 900 MHz → R9M (handset module)
-            → S.Port+ ── GPIO16 (RX2) ESP32
-            → GND ──── GND ESP32
-                → [SportParser] → [PassthroughDecoder] → [MavlinkSender]
-                    → USB Serial 57600  ─┐
-                    → WiFi UDP 14550   ─┴→ Mission Planner
+ArduPilot (any supported FC, SERIALx_PROTOCOL=10)
+    → [inverter if required] → FrSky ACCST receiver (aircraft, S.Port)
+        → RF (900 MHz R9 / 2.4 GHz XJT, etc.)
+            → Handset ACCST module (R9M, XJT, …)
+                → S.Port+ ── GPIO16 (RX2) ESP32
+                → GND ──── GND ESP32
+                    → [SportParser] → [PassthroughDecoder] → [MavlinkSender]
+                        → USB / WiFi UDP → Mission Planner
 ```
 
 **Two UART inversion domains (do not confuse):**
@@ -127,15 +185,17 @@ ArduPilot (SERIALx_PROTOCOL=10)
 | Segment | Inversion |
 |---------|-----------|
 | FC → receiver (aircraft) | Hardware inverter |
-| R9M → ESP32 (ground) | Software (`SPORT_UART_INVERT`) |
+| ACCST module → ESP32 (ground) | Software (`SPORT_UART_INVERT`) |
 
 ---
 
 ## Wiring
 
-### R9M → ESP32
+### Ground module S.Port → ESP32
 
-| R9M (rear connector) | ESP32 DevKit |
+Connect to the rear **SmartPort** of an ACCST transmitter (R9M, XJT, etc.):
+
+| Module (S.Port) | ESP32 DevKit |
 |----------------------|--------------|
 | **GND** | **GND** |
 | **S.Port+** | **GPIO16** (RX2, `SPORT_PIN`) |
@@ -148,7 +208,7 @@ SmartPort: **57600 baud**, single-wire, **inverted UART**.
 
 ## ArduPilot Configuration
 
-On the serial port wired to the FrSky receiver:
+On the UART wired to the FrSky receiver **S.Port / inverted S.Port**:
 
 ```text
 SERIALx_PROTOCOL = 10    # FrSky Passthrough
@@ -235,8 +295,8 @@ All settings are in [`include/config.h`](include/config.h).
 |-------|---------|-------------|
 | `SPORT_PIN` | `16` | SmartPort RX GPIO (RX2) |
 | `SPORT_BAUD` | `57600` | SmartPort baud rate |
-| `SPORT_UART_INVERT` | `true` | Software UART inversion (R9M → ESP) |
-| `SPORT_ACTIVE_POLL` | `0` | `0` = listen-only (ER9X master), `1` = ESP polls R9M |
+| `SPORT_UART_INVERT` | `true` | Software UART inversion (ground S.Port → ESP) |
+| `SPORT_ACTIVE_POLL` | `0` | `0` = listen-only (handset master), `1` = ESP polls module |
 | `SPORT_OPENTX_ROTATE_POLL` | `1` | Rotate 28 wire IDs (OpenTX style) in active poll |
 | `SPORT_POLL_ID_COUNT` | `28` | Poll slot count |
 | `SPORT_POLL_INTERVAL_MS` | `12` | Poll period (active poll) |
@@ -328,7 +388,7 @@ platformio.ini            — ESP32 build
 
 **Listen mode** (`SPORT_ACTIVE_POLL 0`): sliding-window CRC extracts frames from a stream containing handset poll bytes `0x7E`.
 
-**Active poll** (`SPORT_ACTIVE_POLL 1`): classic sequential parser; ESP sends polls to R9M.
+**Active poll** (`SPORT_ACTIVE_POLL 1`): classic sequential parser; ESP sends polls to the ground module.
 
 ---
 
@@ -375,7 +435,7 @@ Expect `VERDICT: PASS` with aircraft powered and RF linked. `ATTITUDE` and `VFR_
 | Symptom | Cause | Action |
 |---------|-------|--------|
 | MP shows only HEARTBEAT | No passthrough on bus | Power aircraft + RF; check `SERIALx_PROTOCOL=10` |
-| Only `F101`/`F104`, no `0x500x` | R9M module telemetry only | No aircraft link or FC not sending passthrough |
+| Only `F101`/`F104`, no `0x500x` | Ground module telemetry only | No aircraft link or FC not sending passthrough |
 | Alt/climb = 0 on bench | Passthrough quantization | Normal; USB to FC is finer |
 | Pitch jitter on WiFi | Duplicate UDP (fixed) | Update firmware; single UDP target per packet |
 | MP: port 14550 in use | Stale MP process | Close all MP windows / `taskkill` |
@@ -389,4 +449,4 @@ Provided as-is for educational and hobby use. ArduPilot and FrSky are trademarks
 
 ---
 
-**SportR9ix** — SmartPort MAVLink telemetry bridge for long-range FrSky R9 systems.
+**SportR9ix** — SmartPort MAVLink telemetry bridge for FrSky ACCST long-range and 2.4 GHz systems.
